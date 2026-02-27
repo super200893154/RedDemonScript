@@ -1,0 +1,6 @@
+module RedDemonScript
+typeinfo appRedDemonScript.qmltypes
+prefer :/qt/qml/RedDemonScript/
+Main 254.0 Main.qml
+depends QtQuick
+
