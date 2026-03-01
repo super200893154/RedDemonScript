@@ -1,0 +1,91 @@
+# generated: 2026-03-02
+# project: RedDemonScript
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# 状态定义：
+# ==================
+# Epic 状态：
+#   - backlog：Epic 尚未开始
+#   - in-progress：Epic 正在进行中
+#   - done：Epic 中的所有 Story 已完成
+#
+# Epic 状态转换：
+#   - backlog → in-progress：创建第一个 Story 时自动转换（通过 create-story）
+#   - in-progress → done：当所有 Story 达到 'done' 状态时手动转换
+#
+# Story 状态：
+#   - backlog：Story 仅存在于 Epic 文件中
+#   - ready-for-dev：Story 文件已在 stories 文件夹中创建
+#   - in-progress：开发人员正在积极进行实现
+#   - review：准备进行代码审查（通过 Dev 的 code-review 工作流）
+#   - done：Story 已完成
+#
+# 回顾状态：
+#   - optional：可以完成但不是必需的
+#   - done：回顾已完成
+#
+# 工作流说明：
+# ===============
+# - 当创建第一个 Story 时，Epic 自动转换为 'in-progress'
+# - 如果团队容量允许，Story 可以并行进行
+# - SM 通常在上一个 Story 'done' 后创建下一个 Story，以融入学习成果
+# - Dev 将 Story 移至 'review'，然后运行 code-review（建议使用新上下文、不同的 LLM）
+
+generated: 2026-03-02
+project: RedDemonScript
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: 项目基础设施与配置
+  epic-1: in-progress
+  1-1-project-structure-setup: ready-for-dev
+  1-2-logging-system-implementation: backlog
+  1-3-log-auto-cleanup: backlog
+  1-4-configuration-manager-implementation: backlog
+  1-5-account-password-encryption: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: 核心脚本执行
+  epic-2: backlog
+  2-1-user-interface-definition: backlog
+  2-2-external-dll-wrapper: backlog
+  2-3-scriptcontroller-main-controller: backlog
+  2-4-scriptthread-script-execution-thread: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: 异常监控与恢复
+  epic-3: backlog
+  3-1-monitorthread-exception-monitoring-thread: backlog
+  3-2-process-not-responding-detection: backlog
+  3-3-process-crash-detection: backlog
+  3-4-auto-recovery-mechanism: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: 定时器管理
+  epic-4: backlog
+  4-1-timerthread-timer-thread: backlog
+  4-2-random-offset-algorithm: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: 多账号管理
+  epic-5: backlog
+  5-1-accountinfo-data-structure-and-accountmanager-basics: backlog
+  5-2-account-crud-operations: backlog
+  5-3-account-configuration-management: backlog
+  5-4-sandboxie-sandbox-integration: backlog
+  5-5-account-auto-rotation: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: 图形界面
+  epic-6: backlog
+  6-1-main-window-frame-and-theme-configuration: backlog
+  6-2-statuscard-status-card-component: backlog
+  6-3-accountcard-account-card-component: backlog
+  6-4-main-operation-buttons-and-script-control: backlog
+  6-5-logpanel-log-panel-component: backlog
+  6-6-system-tray-and-status-bar: backlog
+  epic-6-retrospective: optional
