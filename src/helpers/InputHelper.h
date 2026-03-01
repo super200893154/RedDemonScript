@@ -2,6 +2,7 @@
 #define INPUTHELPER_H
 
 #include <QString>
+#include <QThread>
 
 /**
  * @brief 输入辅助类，封装鼠标键盘模拟功能

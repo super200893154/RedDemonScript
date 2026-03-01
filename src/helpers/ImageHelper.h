@@ -4,6 +4,7 @@
 #include <QString>
 #include <QRect>
 #include <QColor>
+#include <QImage>
 
 /**
  * @brief 图色识别辅助类，封装图像识别功能

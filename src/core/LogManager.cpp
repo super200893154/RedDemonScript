@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QDateTime>
 #include <QDebug>
+#include <QStringConverter>
 
 // 静态成员初始化
 LogManager* LogManager::s_instance = nullptr;
@@ -152,7 +153,7 @@ QStringList LogManager::getRecentLogs(const QString &account, int count)
         for (int i = chunkLines.size() - 1; i >= 0; --i) {
             QString line = QString::fromUtf8(chunkLines[i]).trimmed();
             if (!line.isEmpty()) {
-                lines.prepend(line);
+                lines.prepend(line.toUtf8());
             }
         }
     }
@@ -161,7 +162,7 @@ QStringList LogManager::getRecentLogs(const QString &account, int count)
     
     // 转换为 QStringList 并限制数量
     for (int i = 0; i < qMin(count, lines.size()); ++i) {
-        logs.append(lines[i]);
+        logs.append(QString::fromUtf8(lines[i]));
     }
     
     return logs;
@@ -185,7 +186,7 @@ void LogManager::writeLog(LogLevel level, const QString &account, const QString 
     QTextStream* stream = m_logStreams.value(account, nullptr);
     if (!stream) {
         stream = new QTextStream(file);
-        stream->setCodec("UTF-8");
+        stream->setEncoding(QStringConverter::Utf8);
         m_logStreams[account] = stream;
     }
     

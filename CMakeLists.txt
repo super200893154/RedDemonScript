@@ -60,6 +60,14 @@ target_link_libraries(appRedDemonScript
         Qt6::Concurrent
 )
 
+# Windows 系统库
+if(WIN32)
+    target_link_libraries(appRedDemonScript PRIVATE winmm.lib advapi32.lib crypt32.lib)
+endif()
+
+# 添加 src 目录到 include 路径
+target_include_directories(appRedDemonScript PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
 # 自动部署 Qt DLL (Windows)
 if(WIN32)
     # 获取 windeployqt 路径

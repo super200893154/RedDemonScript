@@ -8,7 +8,6 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <dpapi.h>
-#pragma comment(lib, "dpapi.lib")
 #endif
 
 AccountManager::AccountManager(QObject *parent)

@@ -1,9 +1,9 @@
 #include "InputHelper.h"
-#include <QApplication>
 #include <QCursor>
 #include <QTimer>
-#include <QKeyEvent>
-#include <QTest>
+#include <QPoint>
+#include <QThread>
+#include <windows.h>
 
 InputHelper::InputHelper()
 {
@@ -18,8 +18,11 @@ void InputHelper::click(int x, int y)
     // 移动鼠标到指定位置
     QCursor::setPos(x, y);
     
-    // 模拟鼠标点击
-    QTest::mouseClick(qApp->focusWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(x, y));
+    // 使用 Windows API 模拟鼠标点击
+    // 先按下左键
+    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+    // 再松开左键
+    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
 
 void InputHelper::move(int x, int y)
@@ -43,11 +46,6 @@ void InputHelper::typeText(const QString& text)
 
 void InputHelper::wait(int milliseconds)
 {
-    // 使用事件循环等待指定时间
-    QEventLoop loop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    timer.start(milliseconds);
-    loop.exec();
+    // 使用 QThread 睡眠
+    QThread::msleep(milliseconds);
 }
