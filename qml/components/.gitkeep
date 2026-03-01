@@ -1,0 +1,2 @@
+# 此目录用于存放自定义 QML 组件
+# 包含：StatusCard.qml, AccountCard.qml, LogPanel.qml, StatusBar.qml

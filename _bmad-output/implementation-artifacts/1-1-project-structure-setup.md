@@ -46,23 +46,23 @@ Status: done
   - [x] 4.2 执行构建编译
   - [x] 4.3 运行空白窗口验证
 
-- [ ] 任务 5：实现核心接口定义（Review Follow-ups）
+- [x] 任务 5：实现核心接口定义（Review Follow-ups）
   - [x] 5.1 创建 IGameLauncher 接口
   - [x] 5.2 创建 IDungeonEntry 接口
   - [x] 5.3 创建 IDungeonRunner 接口
 
-- [ ] 任务 6：实现核心类（Review Follow-ups）
+- [x] 任务 6：实现核心类（Review Follow-ups）
   - [x] 6.1 创建 ScriptController 类
   - [x] 6.2 创建 ScriptThread 类
   - [x] 6.3 创建 MonitorThread 类
   - [x] 6.4 创建 TimerThread 类
   - [x] 6.5 创建 LogManager 类
 
-- [ ] 任务 7：实现辅助类（Review Follow-ups）
+- [x] 任务 7：实现辅助类（Review Follow-ups）
   - [x] 7.1 创建 ImageHelper 类
   - [x] 7.2 创建 InputHelper 类
 
-- [ ] 任务 8：实现账号管理类（Review Follow-ups）
+- [x] 任务 8：实现账号管理类（Review Follow-ups）
   - [x] 8.1 创建 AccountInfo 结构体
   - [x] 8.2 创建 AccountManager 类
 

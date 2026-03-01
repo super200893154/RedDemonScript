@@ -259,3 +259,28 @@ GLM-5
 | 日期 | 变更内容 |
 |------|----------|
 | 2026-03-02 | 完成 Story 1.2 日志系统实现：LogManager 重构、账号隔离存储、线程安全、QML 集成 |
+
+## Review Follow-ups (AI)
+
+### Medium Priority
+- [x] [AI-Review][MEDIUM] 同步 Story 1.1 Review Follow-ups 任务状态
+  - 已更新 1-1-project-structure-setup.md 任务 5-8 状态为已完成
+  - 涉及文件：IGameLauncher.h, IDungeonEntry.h, IDungeonRunner.h, ScriptController.h/cpp, ScriptThread.h/cpp, MonitorThread.h/cpp, TimerThread.h/cpp, ImageHelper.h/cpp, InputHelper.h/cpp, AccountManager.h/cpp, AccountInfo.h
+
+- [ ] [AI-Review][MEDIUM] 提交所有 untracked 文件到 Git
+  - 当前所有文件状态为 untracked，无法通过 git diff 验证变更
+  - 建议首次提交包含所有基础文件
+
+- [ ] [AI-Review][MEDIUM] 添加测试验证说明
+  - 当前任务 4 声称验证通过但无测试代码
+  - 选项 A：添加自动化测试代码（推荐）
+  - 选项 B：更新文档说明通过代码审查验证
+
+### Low Priority
+- [ ] [AI-Review][LOW] 优化 getRecentLogs() 性能
+  - 当前实现每次读取整个日志文件
+  - 建议：从文件末尾反向读取或添加内存缓存
+
+- [ ] [AI-Review][LOW] 统一 Story 状态语义
+  - Status 标记为 "review" 但所有任务完成
+  - 建议：改为 "done" 或 "in-progress"

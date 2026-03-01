@@ -1,0 +1,2 @@
+# 此目录用于存放用户接口定义
+# 包含：IGameLauncher, IDungeonEntry, IDungeonRunner

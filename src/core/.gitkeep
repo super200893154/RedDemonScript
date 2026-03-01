@@ -1,0 +1,2 @@
+# 此目录用于存放核心框架代码
+# 包含：ScriptController, ScriptThread, MonitorThread, TimerThread, Logger, ConfigManager
