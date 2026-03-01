@@ -2,20 +2,43 @@ cmake_minimum_required(VERSION 3.16)
 
 project(RedDemonScript VERSION 0.1 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Widgets Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appRedDemonScript
     main.cpp
+    src/core/LogManager.h
+    src/core/LogManager.cpp
+    src/core/ScriptController.h
+    src/core/ScriptController.cpp
+    src/core/ScriptThread.h
+    src/core/ScriptThread.cpp
+    src/core/MonitorThread.h
+    src/core/MonitorThread.cpp
+    src/core/TimerThread.h
+    src/core/TimerThread.cpp
+    src/interfaces/IGameLauncher.h
+    src/interfaces/IDungeonEntry.h
+    src/interfaces/IDungeonRunner.h
+    src/helpers/ImageHelper.h
+    src/helpers/ImageHelper.cpp
+    src/helpers/InputHelper.h
+    src/helpers/InputHelper.cpp
+    src/account/AccountInfo.h
+    src/account/AccountManager.h
+    src/account/AccountManager.cpp
 )
 
 qt_add_qml_module(appRedDemonScript
     URI RedDemonScript
     QML_FILES
         Main.qml
+    RESOURCES
+        qtquickcontrols2.conf
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -30,7 +53,11 @@ set_target_properties(appRedDemonScript PROPERTIES
 )
 
 target_link_libraries(appRedDemonScript
-    PRIVATE Qt6::Quick
+    PRIVATE
+        Qt6::Quick
+        Qt6::QuickControls2
+        Qt6::Widgets
+        Qt6::Concurrent
 )
 
 # 自动部署 Qt DLL (Windows)

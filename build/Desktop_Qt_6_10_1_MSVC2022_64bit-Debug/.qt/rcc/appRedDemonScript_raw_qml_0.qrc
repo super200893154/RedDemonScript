@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/RedDemonScript/">
-    <file alias="Main.qml">F:/ProjectCode/QtCreator/Test/RedDemonScript/Main.qml</file>
-  </qresource>
-</RCC>
-
