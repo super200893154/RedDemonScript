@@ -1,0 +1,1 @@
+@{project-root}/_bmad-output/project-context.md

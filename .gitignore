@@ -1,0 +1,15 @@
+# Build directory
+build/
+
+# IDE
+.qtcreator/
+.idea/
+.vscode/
+*.user
+
+# Compiled files
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
