@@ -1,195 +1,223 @@
 #include "LogManager.h"
+#include <QStandardPaths>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDateTime>
-#include <QStandardPaths>
-#include <QMutexLocker>
-#include <QTextCodec>
-#include <algorithm>
+#include <QDebug>
+
+// 静态成员初始化
+LogManager* LogManager::s_instance = nullptr;
 
 LogManager::LogManager(QObject *parent)
     : QObject(parent)
-    , m_currentLogFile(nullptr)
-    , m_logStream(nullptr)
-    , m_logPath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/logs")
-    , m_currentLogLevel(INFO)
-    , m_maxFileSize(10 * 1024 * 1024) // 10MB
-    , m_maxFiles(5)
-    , m_cleanupTimer(new QTimer(this))
+    , m_logBasePath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/logs")
 {
-    ensureLogDirectory();
-    
-    // 设置日志清理定时器（每天运行一次）
-    m_cleanupTimer->setInterval(24 * 60 * 60 * 1000); // 24小时
-    connect(m_cleanupTimer, &QTimer::timeout, this, &LogManager::cleanupOldLogs);
-    m_cleanupTimer->start();
+    // 确保日志基础目录存在
+    QDir().mkpath(m_logBasePath);
 }
 
 LogManager::~LogManager()
 {
-    if (m_currentLogFile) {
-        if (m_currentLogFile->isOpen()) {
-            m_currentLogFile->close();
+    QMutexLocker locker(&m_mutex);
+    
+    // 关闭所有日志文件和流
+    for (auto it = m_logStreams.begin(); it != m_logStreams.end(); ++it) {
+        if (it.value()) {
+            it.value()->flush();
+            delete it.value();
         }
-        delete m_currentLogFile;
-        m_currentLogFile = nullptr;
     }
-    if (m_logStream) {
-        delete m_logStream;
-        m_logStream = nullptr;
+    m_logStreams.clear();
+    
+    for (auto it = m_logFiles.begin(); it != m_logFiles.end(); ++it) {
+        if (it.value()) {
+            if (it.value()->isOpen()) {
+                it.value()->close();
+            }
+            delete it.value();
+        }
     }
+    m_logFiles.clear();
 }
 
-void LogManager::log(LogLevel level, const QString &message, const QString &account)
+LogManager* LogManager::instance()
 {
-    if (level < m_currentLogLevel) {
-        return; // 级别不够，不记录
+    if (!s_instance) {
+        s_instance = new LogManager(QCoreApplication::instance());
     }
-    
-    QMutexLocker locker(&m_logMutex);
-    
-    writeLogEntry(level, message, account);
-    
-    // 发送信号通知UI
-    emit logMessage(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), 
-                   level, message, account);
+    return s_instance;
 }
 
-void LogManager::debug(const QString &message, const QString &account)
+void LogManager::registerSingleton()
 {
-    log(DEBUG, message, account);
+    // 单例通过 instance() 方法访问
+    // QML 注册在 main.cpp 中通过 qmlRegisterSingletonInstance 完成
 }
 
-void LogManager::info(const QString &message, const QString &account)
+void LogManager::setLogBasePath(const QString &path)
 {
-    log(INFO, message, account);
-}
-
-void LogManager::warn(const QString &message, const QString &account)
-{
-    log(WARN, message, account);
-}
-
-void LogManager::error(const QString &message, const QString &account)
-{
-    log(ERROR, message, account);
-}
-
-void LogManager::setLogPath(const QString &path)
-{
-    QMutexLocker locker(&m_logMutex);
-    m_logPath = path;
-    ensureLogDirectory();
-}
-
-void LogManager::setMaxFileSize(qint64 size)
-{
-    QMutexLocker locker(&m_logMutex);
-    m_maxFileSize = size;
-}
-
-void LogManager::setMaxFiles(int count)
-{
-    QMutexLocker locker(&m_logMutex);
-    m_maxFiles = count;
-}
-
-void LogManager::setLogLevel(LogLevel level)
-{
-    QMutexLocker locker(&m_logMutex);
-    m_currentLogLevel = level;
+    QMutexLocker locker(&m_mutex);
+    m_logBasePath = path;
+    QDir().mkpath(m_logBasePath);
 }
 
 QString LogManager::levelToString(LogLevel level)
 {
     switch (level) {
-    case DEBUG: return "DEBUG";
     case INFO:  return "INFO";
     case WARN:  return "WARN";
     case ERROR: return "ERROR";
-    default:    return "UNKNOWN";
+    default:    return "INFO";
     }
 }
 
-void LogManager::cleanupOldLogs()
+LogManager::LogLevel LogManager::stringToLevel(const QString &level)
 {
-    QMutexLocker locker(&m_logMutex);
-    
-    QDir logDir(m_logPath);
-    QStringList logFiles = logDir.entryList(QStringList() << "*.log", QDir::Files | QDir::NoDotAndDotDot, QDir::Time);
-    
-    // 保留最新的 m_maxFiles 个文件，删除其余的
-    for (int i = m_maxFiles; i < logFiles.size(); ++i) {
-        QString filePath = m_logPath + "/" + logFiles[i];
-        QFile::remove(filePath);
+    QString upper = level.toUpper();
+    if (upper == "WARN" || upper == "WARNING") {
+        return WARN;
+    } else if (upper == "ERROR") {
+        return ERROR;
     }
+    return INFO;
 }
 
-QString LogManager::getCurrentLogFileName() const
+void LogManager::log(const QString &account, const QString &level, const QString &message)
 {
-    QString dateStr = QDateTime::currentDateTime().toString("yyyy-MM-dd");
-    return QString("%1/%2.log").arg(m_logPath).arg(dateStr);
+    writeLog(stringToLevel(level), account, message);
 }
 
-bool LogManager::rotateLogFile()
+void LogManager::logInfo(const QString &account, const QString &message)
 {
-    if (m_currentLogFile && m_currentLogFile->isOpen()) {
-        m_currentLogFile->close();
-    }
-    
-    QString logFileName = getCurrentLogFileName();
-    m_currentLogFile = new QFile(logFileName);
-    
-    // 确保目录存在
-    QFileInfo fileInfo(logFileName);
-    QDir().mkpath(fileInfo.absolutePath());
-    
-    if (!m_currentLogFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        qWarning() << "无法打开日志文件:" << logFileName;
-        return false;
-    }
-    
-    // 设置UTF-8编码
-    m_logStream = new QTextStream(m_currentLogFile);
-    m_logStream->setCodec("UTF-8");
-    
-    return true;
+    writeLog(INFO, account, message);
 }
 
-void LogManager::ensureLogDirectory()
+void LogManager::logWarn(const QString &account, const QString &message)
 {
-    QDir().mkpath(m_logPath);
+    writeLog(WARN, account, message);
 }
 
-void LogManager::writeLogEntry(LogLevel level, const QString &message, const QString &account)
+void LogManager::logError(const QString &account, const QString &message)
 {
-    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-    QString levelStr = levelToString(level);
+    writeLog(ERROR, account, message);
+}
+
+QStringList LogManager::getRecentLogs(const QString &account, int count)
+{
+    QMutexLocker locker(&m_mutex);
     
-    // 格式: [时间戳] [级别] 账号 - 消息
-    QString logEntry;
-    if (!account.isEmpty()) {
-        logEntry = QString("[%1] [%2] 账号{%3} - %4")
-                      .arg(timestamp)
-                      .arg(levelStr)
-                      .arg(account)
-                      .arg(message);
-    } else {
-        logEntry = QString("[%1] [%2] %3")
-                      .arg(timestamp)
-                      .arg(levelStr)
-                      .arg(message);
+    QString filePath = getLogFilePath(account);
+    QFile file(filePath);
+    QStringList logs;
+    
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return logs;
     }
     
-    // 如果当前日志文件不存在或大小超过限制，则轮换
-    if (!m_currentLogFile || 
-        !m_currentLogFile->isOpen() || 
-        m_currentLogFile->size() > m_maxFileSize) {
-        if (!rotateLogFile()) {
-            return; // 无法轮换日志文件
-        }
+    QTextStream in(&file);
+    in.setCodec("UTF-8");
+    
+    // 读取所有行
+    QStringList allLines;
+    while (!in.atEnd()) {
+        allLines.append(in.readLine());
+    }
+    file.close();
+    
+    // 返回最后 count 行
+    int start = qMax(0, allLines.size() - count);
+    for (int i = start; i < allLines.size(); ++i) {
+        logs.append(allLines[i]);
+    }
+    
+    return logs;
+}
+
+void LogManager::writeLog(LogLevel level, const QString &account, const QString &message)
+{
+    QMutexLocker locker(&m_mutex);
+    
+    // 格式化日志条目
+    QString formattedLog = formatLogEntry(level, account, message);
+    
+    // 获取或创建日志文件
+    QFile* file = getOrCreateLogFile(account);
+    if (!file || !file->isOpen()) {
+        qWarning() << "LogManager: 无法打开日志文件，账号:" << account;
+        return;
+    }
+    
+    // 获取或创建文本流
+    QTextStream* stream = m_logStreams.value(account, nullptr);
+    if (!stream) {
+        stream = new QTextStream(file);
+        stream->setCodec("UTF-8");
+        m_logStreams[account] = stream;
     }
     
     // 写入日志
-    *m_logStream << logEntry << Qt::endl;
-    m_logStream->flush(); // 确保内容写入磁盘
+    *stream << formattedLog << Qt::endl;
+    stream->flush();  // 确保立即写入（缓冲由 Qt 内部处理）
+    
+    // 发送信号通知 QML
+    emit logAppended(account, formattedLog);
+}
+
+QString LogManager::getLogFilePath(const QString &account) const
+{
+    QString date = QDate::currentDate().toString("yyyy-MM-dd");
+    return QString("%1/%2/%3.log").arg(m_logBasePath, account, date);
+}
+
+QFile* LogManager::getOrCreateLogFile(const QString &account)
+{
+    QString filePath = getLogFilePath(account);
+    
+    // 检查是否已有打开的文件
+    QFile* file = m_logFiles.value(account, nullptr);
+    
+    // 检查文件路径是否变化（日期变化）
+    if (file && file->fileName() != filePath) {
+        // 关闭旧文件
+        if (m_logStreams.contains(account)) {
+            delete m_logStreams.take(account);
+        }
+        file->close();
+        delete file;
+        file = nullptr;
+        m_logFiles.remove(account);
+    }
+    
+    // 创建新文件
+    if (!file) {
+        ensureLogDirectory(account);
+        file = new QFile(filePath);
+        if (file->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            m_logFiles[account] = file;
+        } else {
+            delete file;
+            return nullptr;
+        }
+    }
+    
+    return file;
+}
+
+void LogManager::ensureLogDirectory(const QString &account)
+{
+    QString dirPath = QString("%1/%2").arg(m_logBasePath, account);
+    QDir().mkpath(dirPath);
+}
+
+QString LogManager::formatLogEntry(LogLevel level, const QString &account, const QString &message)
+{
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+    QString levelStr = levelToString(level);
+    
+    // 格式: [YYYY-MM-DD HH:mm:ss] [LEVEL] 账号名 - 操作描述
+    return QString("[%1] [%2] %3 - %4")
+        .arg(timestamp)
+        .arg(levelStr)
+        .arg(account)
+        .arg(message);
 }
