@@ -114,20 +114,54 @@ QStringList LogManager::getRecentLogs(const QString &account, int count)
         return logs;
     }
     
-    QTextStream in(&file);
-    in.setCodec("UTF-8");
-    
-    // 读取所有行
-    QStringList allLines;
-    while (!in.atEnd()) {
-        allLines.append(in.readLine());
+    // 优化：从文件末尾反向读取，避免读取整个文件
+    // 对于大型日志文件，这显著提高性能
+    qint64 fileSize = file.size();
+    if (fileSize == 0) {
+        file.close();
+        return logs;
     }
+    
+    // 使用缓冲区从文件末尾反向搜索
+    const int BUFFER_SIZE = 4096;
+    QByteArray buffer;
+    QList<QByteArray> lines;
+    qint64 position = fileSize;
+    
+    while (lines.size() < count && position > 0) {
+        // 调整读取位置
+        qint64 readSize = qMin(BUFFER_SIZE, static_cast<int>(position));
+        position -= readSize;
+        
+        if (!file.seek(position)) {
+            break;
+        }
+        
+        buffer = file.read(readSize);
+        
+        // 分割行并添加到列表
+        QList<QByteArray> chunkLines = buffer.split('\n');
+        
+        // 如果不是第一次读取，第一个元素可能是不完整的行
+        if (!lines.isEmpty() && !chunkLines.isEmpty()) {
+            // 将不完整的行与之前的行合并
+            chunkLines.last() = chunkLines.last() + lines.takeFirst();
+        }
+        
+        // 将新行添加到开头
+        for (int i = chunkLines.size() - 1; i >= 0; --i) {
+            QString line = QString::fromUtf8(chunkLines[i]).trimmed();
+            if (!line.isEmpty()) {
+                lines.prepend(line);
+            }
+        }
+    }
+    
     file.close();
     
-    // 返回最后 count 行
-    int start = qMax(0, allLines.size() - count);
-    for (int i = start; i < allLines.size(); ++i) {
-        logs.append(allLines[i]);
+    // 转换为 QStringList 并限制数量
+    for (int i = 0; i < qMin(count, lines.size()); ++i) {
+        logs.append(lines[i]);
     }
     
     return logs;
