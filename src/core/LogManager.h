@@ -10,6 +10,12 @@
 #include <QMutexLocker>
 #include <QMap>
 
+// 取消 Windows 定义的 ERROR 宏，避免与 LogLevel 枚举冲突
+#ifdef Q_OS_WIN
+#include <windows.h>
+#undef ERROR
+#endif
+
 /**
  * @brief 日志清理结果结构体
  */

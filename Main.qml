@@ -7,7 +7,7 @@ Window {
     width: 800
     height: 600
     visible: true
-    title: qsTr("RedDemonScript - 日志系统测试")
+    title: qsTr("RedDemonScript - 账号密码加密测试")
 
     color: "#1e1e1e"
 
@@ -229,6 +229,183 @@ Window {
                     color: "#ffffff"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+
+        // ========== 账号密码加密测试区域 ==========
+        Rectangle {
+            Layout.fillWidth: true
+            height: 2
+            color: "#555555"
+        }
+
+        Label {
+            text: "账号密码加密测试"
+            font.pixelSize: 18
+            font.bold: true
+            color: "#e0e0e0"
+        }
+
+        // 账号信息输入
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Label {
+                text: "账号:"
+                color: "#b0b0b0"
+            }
+
+            TextField {
+                id: testAccountInput
+                text: "testUser"
+                placeholderText: "输入账号"
+                Layout.fillWidth: true
+                color: "#e0e0e0"
+                background: Rectangle {
+                    color: "#2d2d2d"
+                    radius: 4
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Label {
+                text: "密码:"
+                color: "#b0b0b0"
+            }
+
+            TextField {
+                id: testPasswordInput
+                text: "mySecretPassword123"
+                placeholderText: "输入密码"
+                Layout.fillWidth: true
+                color: "#e0e0e0"
+                echoMode: TextInput.Password
+                background: Rectangle {
+                    color: "#2d2d2d"
+                    radius: 4
+                }
+            }
+        }
+
+        // 操作按钮
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Button {
+                text: "保存账号"
+                onClicked: {
+                    var accountObj = {
+                        "username": testAccountInput.text,
+                        "password": testPasswordInput.text
+                    }
+                    var success = ConfigManager.addAccount(accountObj)
+                    if (success) {
+                        testResultText.text = "✓ 账号保存成功！密码已加密存储。"
+                        LogManager.logInfo("system", "测试：账号 " + testAccountInput.text + " 已保存，密码已加密")
+                    } else {
+                        testResultText.text = "✗ 账号保存失败！"
+                    }
+                }
+                background: Rectangle {
+                    color: parent.down ? "#1a5a8a" : parent.hovered ? "#2a7aaa" : "#1a6a9a"
+                    radius: 4
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Button {
+                text: "读取账号"
+                onClicked: {
+                    var accounts = ConfigManager.accounts()
+                    var result = "账号列表：\n"
+                    for (var i = 0; i < accounts.length; i++) {
+                        var acc = accounts[i]
+                        result += "\n[" + i + "] 用户名: " + acc.username + "\n"
+                        result += "    密码: " + acc.password + "\n"
+                        if (acc.passwordEncrypted) {
+                            result += "    已加密: 是\n"
+                        }
+                    }
+                    testResultText.text = result
+                    LogManager.logInfo("system", "测试：读取了 " + accounts.length + " 个账号")
+                }
+                background: Rectangle {
+                    color: parent.down ? "#4a4a4a" : parent.hovered ? "#5a5a5a" : "#4a4a4a"
+                    radius: 4
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Button {
+                text: "查看加密数据"
+                onClicked: {
+                    // 直接读取配置文件查看加密后的密码
+                    var accounts = ConfigManager.accounts()
+                    var configPath = ConfigManager.configPath
+                    testResultText.text = "配置路径: " + configPath + "\n\n请手动查看 config.json 文件中的 password 字段"
+                    LogManager.logInfo("system", "测试：查看加密数据")
+                }
+                background: Rectangle {
+                    color: parent.down ? "#4a4a4a" : parent.hovered ? "#5a5a5a" : "#4a4a4a"
+                    radius: 4
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+
+        // 结果显示
+        Label {
+            text: "测试结果:"
+            color: "#b0b0b0"
+        }
+
+        // 显示配置路径
+        Label {
+            id: configPathLabel
+            text: "配置路径: " + ConfigManager.configPath
+            color: "#888888"
+            font.pixelSize: 10
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 80
+            color: "#2d2d2d"
+            radius: 4
+
+            ScrollView {
+                anchors.fill: parent
+                anchors.margins: 5
+
+                Text {
+                    id: testResultText
+                    text: "点击按钮进行测试..."
+                    color: "#6bcb77"
+                    font.family: "Consolas, Monaco, monospace"
+                    font.pixelSize: 12
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 }
             }
         }

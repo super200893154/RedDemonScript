@@ -42,6 +42,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(int logMaxFileSize READ logMaxFileSize WRITE setLogMaxFileSize NOTIFY logMaxFileSizeChanged)
     Q_PROPERTY(int logMaxFiles READ logMaxFiles WRITE setLogMaxFiles NOTIFY logMaxFilesChanged)
     Q_PROPERTY(QString logPath READ logPath WRITE setLogPath NOTIFY logPathChanged)
+    Q_PROPERTY(QString configPath READ configPath)
 
 public:
     /**

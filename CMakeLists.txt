@@ -30,6 +30,8 @@ qt_add_executable(appRedDemonScript
     src/helpers/ImageHelper.cpp
     src/helpers/InputHelper.h
     src/helpers/InputHelper.cpp
+    src/helpers/DpapiHelper.h
+    src/helpers/DpapiHelper.cpp
     src/account/AccountInfo.h
     src/account/AccountManager.h
     src/account/AccountManager.cpp

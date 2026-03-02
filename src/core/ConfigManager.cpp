@@ -1,5 +1,6 @@
 #include "ConfigManager.h"
 #include "LogManager.h"
+#include "../helpers/DpapiHelper.h"
 #include <QCoreApplication>
 #include <QStandardPaths>
 #include <QDebug>
@@ -583,16 +584,61 @@ void ConfigManager::setLogPath(const QString &path)
 QJsonArray ConfigManager::accounts() const
 {
     QMutexLocker locker(&m_mutex);
-    return m_config["accounts"].toArray();
+    QJsonArray accounts = m_config["accounts"].toArray();
+    QJsonArray decryptedAccounts;
+
+    for (const QJsonValue &value : accounts) {
+        QJsonObject account = value.toObject();
+
+        // 解密密码字段
+        if (account.contains("passwordEncrypted") && account["passwordEncrypted"].toBool()) {
+            QByteArray encryptedPassword = account["password"].toString().toUtf8();
+            QByteArray decryptedPassword;
+            QString description;
+
+            if (DpapiHelper::decrypt(encryptedPassword, decryptedPassword, description)) {
+                account["password"] = QString::fromUtf8(decryptedPassword);
+            } else {
+                // 解密失败，记录日志但返回加密值
+                LogManager *logger = LogManager::instance();
+                if (logger) {
+                    logger->logWarn("system",
+                        QString("账号 %1 密码解密失败").arg(account["username"].toString()));
+                }
+            }
+        }
+
+        decryptedAccounts.append(account);
+    }
+
+    return decryptedAccounts;
 }
 
 bool ConfigManager::addAccount(const QJsonObject &account)
 {
     QMutexLocker locker(&m_mutex);
     QJsonArray accounts = m_config["accounts"].toArray();
-    accounts.append(account);
+
+    // 复制账号对象以便加密密码
+    QJsonObject encryptedAccount = account;
+
+    // 加密密码字段
+    if (account.contains("password") && !account["password"].toString().isEmpty()) {
+        QString password = account["password"].toString();
+        QByteArray encryptedPassword;
+
+        if (DpapiHelper::encrypt(password.toUtf8(), encryptedPassword, "RedDemonScript Password")) {
+            encryptedAccount["password"] = QString(encryptedPassword);
+            encryptedAccount["passwordEncrypted"] = true;  // 标记已加密
+        } else {
+            LogManager::instance()->logError("system", "账号密码加密失败");
+            return false;
+        }
+    }
+
+    accounts.append(encryptedAccount);
     m_config["accounts"] = accounts;
-    
+
     // 自动保存配置
     bool saved = saveConfigInternal();
     if (saved) {
@@ -623,18 +669,56 @@ bool ConfigManager::updateAccount(int index, const QJsonObject &account)
 {
     QMutexLocker locker(&m_mutex);
     QJsonArray accounts = m_config["accounts"].toArray();
-    if (index >= 0 && index < accounts.size()) {
-        accounts[index] = account;
-        m_config["accounts"] = accounts;
-        
-        // 自动保存配置
-        bool saved = saveConfigInternal();
-        if (saved) {
-            emit accountsChanged();
-        }
-        return saved;
+    if (index < 0 || index >= accounts.size()) {
+        return false;
     }
-    return false;
+
+    // 复制账号对象以便加密密码
+    QJsonObject encryptedAccount = account;
+
+    // 加密密码字段（仅当密码不为空且未加密时才加密）
+    if (account.contains("password") && !account["password"].toString().isEmpty()) {
+        // 检查是否需要重新加密（如果密码是明文或与存储的不同）
+        bool needsEncryption = true;
+        QJsonObject existingAccount = accounts[index].toObject();
+
+        if (existingAccount.contains("passwordEncrypted") &&
+            existingAccount["passwordEncrypted"].toBool() &&
+            existingAccount.contains("password")) {
+            // 已加密，检查密码是否改变
+            QByteArray storedEncrypted = existingAccount["password"].toString().toUtf8();
+            QByteArray decryptedPassword;
+            QString description;
+            if (DpapiHelper::decrypt(storedEncrypted, decryptedPassword, description)) {
+                if (QString::fromUtf8(decryptedPassword) == account["password"].toString()) {
+                    needsEncryption = false; // 密码未改变，无需重新加密
+                }
+            }
+        }
+
+        if (needsEncryption) {
+            QString password = account["password"].toString();
+            QByteArray encryptedPassword;
+
+            if (DpapiHelper::encrypt(password.toUtf8(), encryptedPassword, "RedDemonScript Password")) {
+                encryptedAccount["password"] = QString(encryptedPassword);
+                encryptedAccount["passwordEncrypted"] = true;
+            } else {
+                LogManager::instance()->logError("system", "账号密码加密失败");
+                return false;
+            }
+        }
+    }
+
+    accounts[index] = encryptedAccount;
+    m_config["accounts"] = accounts;
+
+    // 自动保存配置
+    bool saved = saveConfigInternal();
+    if (saved) {
+        emit accountsChanged();
+    }
+    return saved;
 }
 
 QString ConfigManager::configPath() const
