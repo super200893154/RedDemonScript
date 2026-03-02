@@ -44,8 +44,8 @@ development_status:
   epic-1: in-progress
   1-1-project-structure-setup: done
   1-2-logging-system-implementation: done
-  # Review 发现问题已全部修复
-  1-3-log-auto-cleanup: ready-for-dev
+  # Review 完成，所有问题已修复
+  1-3-log-auto-cleanup: done
   1-4-configuration-manager-implementation: backlog
   1-5-account-password-encryption: backlog
   epic-1-retrospective: optional

@@ -11,8 +11,16 @@
 #include <QMap>
 
 /**
+ * @brief 日志清理结果结构体
+ */
+struct LogCleanupResult {
+    int deletedCount = 0;      // 删除的文件数量
+    qint64 freedSpace = 0;     // 释放的空间（字节）
+};
+
+/**
  * @brief 日志管理器，负责记录和管理应用程序日志
- * 
+ *
  * 功能：
  * - 按账号隔离存储日志到独立目录 logs/{accountName}/{date}.log
  * - 线程安全的日志写入
@@ -67,6 +75,9 @@ public:
     static QString levelToString(LogLevel level);
     static LogLevel stringToLevel(const QString &level);
 
+    // 日志清理方法
+    Q_INVOKABLE void cleanupOldLogs();
+
 signals:
     /**
      * @brief 日志追加信号，通知 QML 更新显示
@@ -83,6 +94,9 @@ private:
     void ensureLogDirectory(const QString &account);
     QString formatLogEntry(LogLevel level, const QString &account, const QString &message);
 
+    // 日志清理
+    LogCleanupResult deleteOldLogFiles(const QDir &logDir, const QDate &cutoffDate);
+
     // 单例实例
     static LogManager* s_instance;
 
@@ -91,7 +105,9 @@ private:
     QString m_logBasePath;
     QMap<QString, QFile*> m_logFiles;          // 账号 -> 日志文件
     QMap<QString, QTextStream*> m_logStreams;  // 账号 -> 日志流
+    int m_daysToKeep;                           // 日志保留天数，默认7天
     static constexpr int MAX_RECENT_LOGS = 1000;
+    static constexpr int DEFAULT_DAYS_TO_KEEP = 7;
 };
 
 #endif // LOGMANAGER_H

@@ -12,6 +12,7 @@ LogManager* LogManager::s_instance = nullptr;
 LogManager::LogManager(QObject *parent)
     : QObject(parent)
     , m_logBasePath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/logs")
+    , m_daysToKeep(DEFAULT_DAYS_TO_KEEP)
 {
     // 确保日志基础目录存在
     QDir().mkpath(m_logBasePath);
@@ -242,6 +243,70 @@ void LogManager::ensureLogDirectory(const QString &account)
 {
     QString dirPath = QString("%1/%2").arg(m_logBasePath, account);
     QDir().mkpath(dirPath);
+}
+
+void LogManager::cleanupOldLogs()
+{
+    QDate cutoffDate = QDate::currentDate().addDays(-m_daysToKeep);
+
+    QDir logsDir(m_logBasePath);
+    if (!logsDir.exists()) {
+        logInfo("system", "日志目录不存在，跳过清理");
+        return;
+    }
+
+    logInfo("system", QString("开始执行日志清理，保留 %1 天内的日志").arg(m_daysToKeep));
+
+    int totalDeleted = 0;
+    qint64 totalFreed = 0;
+
+    {
+        // 使用局部作用域限制锁的范围，避免与 logInfo 死锁
+        QMutexLocker locker(&m_mutex);
+
+        // 遍历所有账号目录
+        QFileInfoList accountDirs = logsDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QFileInfo &accountDirInfo : accountDirs) {
+            QDir accountDir(accountDirInfo.absoluteFilePath());
+            LogCleanupResult result = deleteOldLogFiles(accountDir, cutoffDate);
+            totalDeleted += result.deletedCount;
+            totalFreed += result.freedSpace;
+        }
+    } // 锁在这里释放
+
+    logInfo("system", QString("日志清理完成，删除 %1 个文件，释放 %2 字节")
+        .arg(totalDeleted)
+        .arg(totalFreed));
+}
+
+LogCleanupResult LogManager::deleteOldLogFiles(const QDir &logDir, const QDate &cutoffDate)
+{
+    LogCleanupResult result;
+
+    QFileInfoList logFiles = logDir.entryInfoList(QStringList() << "*.log", QDir::Files);
+    for (const QFileInfo &fileInfo : logFiles) {
+        // 解析文件名中的日期（格式：yyyy-MM-dd.log）
+        QDate fileDate = QDate::fromString(fileInfo.baseName(), "yyyy-MM-dd");
+
+        // 如果文件名不是有效日期格式，跳过
+        if (!fileDate.isValid()) {
+            continue;
+        }
+
+        // 如果文件日期早于截止日期，删除
+        if (fileDate < cutoffDate) {
+            qint64 fileSize = fileInfo.size();
+            if (QFile::remove(fileInfo.absoluteFilePath())) {
+                result.deletedCount++;
+                result.freedSpace += fileSize;
+                qDebug() << "Deleted old log:" << fileInfo.absoluteFilePath();
+            } else {
+                logWarn("system", QString("无法删除日志文件: %1").arg(fileInfo.absoluteFilePath()));
+            }
+        }
+    }
+
+    return result;
 }
 
 QString LogManager::formatLogEntry(LogLevel level, const QString &account, const QString &message)
