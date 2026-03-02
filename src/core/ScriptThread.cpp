@@ -1,6 +1,7 @@
 #include "ScriptThread.h"
 #include <QMutexLocker>
 #include <QDebug>
+#include <QString>
 #include "helpers/InputHelper.h"
 
 ScriptThread::ScriptThread(QObject *parent)
@@ -81,8 +82,15 @@ void ScriptThread::run()
             break;
         }
         
-        // 短暂休眠，避免过度占用 CPU
-        InputHelper::wait(1000);
+        // 短暂休眠，避免过度占用 CPU，同时允许及时响应停止信号
+        // 使用QWaitCondition的5秒超时等待，这样stop()时可以通过wakeAll()立即唤醒
+        {
+            QMutexLocker locker(&m_mutex);
+            if (m_shouldStop) {
+                break;
+            }
+            m_waitCondition.wait(&m_mutex, 5000); // 5秒超时，比原来的1秒更合理
+        }
     }
     
     emit logMessage("[INFO] 脚本线程停止运行");
@@ -125,7 +133,11 @@ bool ScriptThread::launchGame()
     }
     
     emit logMessage("[INFO] 正在启动游戏，账号: " + m_account);
-    bool result = m_gameLauncher->launch(m_account);
+    QString errorMessage;
+    bool result = m_gameLauncher->launch(m_account, errorMessage);
+    if (!result) {
+        emit error("游戏启动失败: " + errorMessage);
+    }
     return result;
 }
 
@@ -138,7 +150,11 @@ bool ScriptThread::enterDungeon()
     }
     
     emit logMessage("[INFO] 正在进入副本");
-    bool result = m_dungeonEntry->enterDungeon();
+    QString errorMessage;
+    bool result = m_dungeonEntry->enterDungeon(errorMessage);
+    if (!result) {
+        emit error("进入副本失败: " + errorMessage);
+    }
     return result;
 }
 
@@ -151,6 +167,10 @@ bool ScriptThread::runDungeon()
     }
     
     emit logMessage("[INFO] 正在运行副本（战斗中）");
-    bool result = m_dungeonRunner->runDungeon();
+    QString errorMessage;
+    bool result = m_dungeonRunner->runDungeon(errorMessage);
+    if (!result) {
+        emit error("运行副本失败: " + errorMessage);
+    }
     return result;
 }

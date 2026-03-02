@@ -44,7 +44,7 @@ private:
     IGameLauncher *m_gameLauncher;
     IDungeonEntry *m_dungeonEntry;
     IDungeonRunner *m_dungeonRunner;
-    
+
     QMutex m_mutex;
     QWaitCondition m_waitCondition;
 
