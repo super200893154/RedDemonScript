@@ -301,7 +301,8 @@ LogCleanupResult LogManager::deleteOldLogFiles(const QDir &logDir, const QDate &
                 result.freedSpace += fileSize;
                 qDebug() << "Deleted old log:" << fileInfo.absoluteFilePath();
             } else {
-                logWarn("system", QString("无法删除日志文件: %1").arg(fileInfo.absoluteFilePath()));
+                // 注意：在锁范围内不能调用 logWarn，使用 qDebug 代替
+                qDebug() << "Failed to delete old log:" << fileInfo.absoluteFilePath();
             }
         }
     }

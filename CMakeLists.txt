@@ -11,6 +11,8 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appRedDemonScript
     main.cpp
+    src/core/ConfigManager.h
+    src/core/ConfigManager.cpp
     src/core/LogManager.h
     src/core/LogManager.cpp
     src/core/ScriptController.h

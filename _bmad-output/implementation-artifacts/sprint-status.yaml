@@ -46,8 +46,10 @@ development_status:
   1-2-logging-system-implementation: done
   # Review 完成，所有问题已修复
   1-3-log-auto-cleanup: done
-  1-4-configuration-manager-implementation: backlog
-  1-5-account-password-encryption: backlog
+  # Code Review 完成：修复了 2 个 HIGH 和 5 个 MEDIUM 问题
+  # 剩余 Task 6 测试任务待完成
+  1-4-configuration-manager-implementation: in-progress
+  1-5-account-password-encryption: ready-for-dev
   epic-1-retrospective: optional
 
   # Epic 2: 核心脚本执行
